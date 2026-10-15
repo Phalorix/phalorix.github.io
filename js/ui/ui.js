@@ -57,10 +57,10 @@ export function setupSound(sound) {
       label.textContent = on ? btn.dataset.on : btn.dataset.off;
     }
     if (pill) {
-      // three states: playing, waiting for the first click (browsers need one), switched off
+      // playing / not yet playing (a click anywhere starts it) / switched off by the visitor
       pill.classList.toggle('is-on', sound.enabled);
       const s = T.sound;
-      const text = sound.enabled ? (touch ? s.touch : s.on) : on ? (touch ? s.armedTouch : s.armed) : (touch ? s.offTouch : s.off);
+      const text = sound.enabled ? (touch ? s.touch : s.on) : sound.armed ? (touch ? s.armedTouch : s.armed) : (touch ? s.offTouch : s.off);
       $('.play-pill__text', pill).textContent = text;
     }
   };

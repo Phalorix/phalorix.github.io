@@ -1,6 +1,6 @@
 // AURORA TECH · WOVEN LIGHT · home page
 // One continuous loom-world travelled by scroll. Every hero object was modelled in Blender
-// (shuttle, Jacquard reader + punched cards, spools, floor loom, reed ring, tapestry rods, logo).
+// (spools, floor loom + shuttle, reed ring, tapestry rods, logo).
 // The page shows its text immediately; the 3D world fades in behind it as soon as the first
 // scene is ready, and the rest of the world streams in while you read.
 import * as THREE from 'three';
@@ -25,6 +25,7 @@ import { Labels } from './ui/labels.js';
 import { Sound } from './ui/audio.js';
 import { ThreadCursor } from './ui/cursor.js';
 import { setupReveals, setupAnchors, setupMenu, setupSound, setupRail, setupModal, setupForm, setupSnapLinks } from './ui/ui.js';
+import { setupCompactCards, setupChapterCards, setupTouchExplore, haptic } from './ui/mobile.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -34,12 +35,16 @@ const PORTRAIT = () => window.innerWidth / window.innerHeight < 0.9;
 // ── the document layer: works with or without WebGL ─────────────────────
 document.body.classList.add('is-entered');
 // lerp 0.12: smooth, but the page answers the wheel immediately
-const lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, smoothWheel: true, autoRaf: false });
+// wheel input goes through the snapper first (projected snapping), once the 3D world is up
+let snapHook = null;
+const lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, smoothWheel: true, autoRaf: false, virtualScroll: (d) => (snapHook ? snapHook(d) : true) });
 const sound = new Sound();
 const scrollTo = (el) => lenis.scrollTo(el, { duration: 2.2 });
 let locked = false;
 const lock = (v) => { locked = v; v ? lenis.stop() : lenis.start(); };
 setupReveals();
+setupCompactCards();
+const chapterCard = setupChapterCards();
 setupSnapLinks();
 setupForm();
 setupSound(sound);
@@ -51,6 +56,7 @@ const modal = setupModal(lock);
 function fallback(err) {
   if (err) console.warn('Aurora Tech: showing the page without the 3D layer.', err);
   document.body.classList.add('no-webgl');
+  document.documentElement.classList.remove('choreo');
   $('#gl').style.display = 'none';
   $('#weave-load')?.classList.add('is-done');
   document.querySelectorAll('.panel, .atlas, .chat').forEach((el) => el.classList.add('is-in'));
@@ -108,6 +114,8 @@ async function boot() {
 
   // ── scroll, snapping, framing ──────────────────────────────────────────
   const snapper = new Snapper(lenis, rig, { blocked: () => locked || menuOpen() || modal.isOpen() });
+  const explore = setupTouchExplore(rig);
+  snapHook = (d) => snapper.onVirtual(d);
   let measured = false;
   const measure = () => {
     rig.measure();
@@ -123,6 +131,7 @@ async function boot() {
   // layout reads are batched: a burst of size changes costs one measurement
   let measureTimer = 0;
   const queueMeasure = () => { clearTimeout(measureTimer); measureTimer = setTimeout(measure, 80); };
+  window.addEventListener('aurora:layout', queueMeasure);
   stage.onResize = measure;
   stage.onDpr = () => lake.resize(renderer);
   stage.onQuality = (q) => lake.setScale(q.refl);
@@ -230,8 +239,9 @@ async function boot() {
   };
   const stream = (async () => {
     await addWorld('origin', async () => {
-      const [jq, cards] = await Promise.all([model('jacquard'), model('cards')]);
-      const o = new Origin(scene, jq, cards, labels, (word) => document.querySelectorAll('[data-card-word]').forEach((el) => { el.textContent = word; }));
+      const o = new Origin(scene, labels, (word) => document.querySelectorAll('[data-card-word]').forEach((el) => { el.textContent = word; }));
+      o.onFlip = () => sound.clack(0.45);
+      o.onDone = (i) => sound.wordBell(i);
       return { range: L.origin.range, ahead: 32, group: o.group, update: (dt) => o.update(dt), obj: o };
     });
     await addWorld('creel', async () => {
@@ -270,7 +280,8 @@ async function boot() {
   // ── loop ─────────────────────────────────────────────────────────────────
   const scrim = [...document.querySelectorAll('.scrim i')];
   const scrimNow = ['', '', ''];
-  let landed = null;
+  let landed = null, currentName = null, currentEl = null;
+  document.documentElement.classList.add('choreo');
   let lastNow = performance.now();
   let first = true;
   function tick(now) {
@@ -313,14 +324,28 @@ async function boot() {
       const o = rig.scrim[i].toFixed(2);
       if (o !== scrimNow[i]) { scrimNow[i] = o; scrim[i].style.opacity = o; }
     }
-    railUpdate(lenis.scroll, (idx, id) => sound.setMood(id));
+    railUpdate(lenis.scroll, (idx, id) => { sound.setMood(id); chapterCard(id); });
+    // the section you are on is "current": it comes forward, the others step back
+    const yNow = lenis.scroll;
+    const zone = rig.zones.find(([za, zb]) => yNow >= za - 2 && yNow <= zb + 2);
+    const curName = zone ? zone[2] : rig.nearest;
+    if (curName !== currentName) {
+      currentEl?.classList.remove('is-current');
+      currentEl = rig.stops.find((st) => st.name === curName)?.el || null;
+      currentEl?.classList.add('is-current');
+      currentName = curName;
+    }
     // sound: air while moving, and a soft settle + a note of the chapter's melody on landing
     const y = lenis.scroll;
     sound.motion(snapper.vel);
     if (Math.abs(snapper.vel) < 30 && !snapper.gliding && rig.stops.length) {
       const st = rig.stops[rig.indexAt(y)];
       if (Math.abs(st.a - y) < 3 && st.name !== landed) {
-        if (landed !== null) sound.arrive(st.chapter, st.index, !/^(svc|work)-\d/.test(st.name));
+        if (landed !== null) {
+          sound.arrive(st.chapter, st.index, !/^(svc|work)-\d/.test(st.name));
+          haptic();
+          if (st.chapter !== 'hero') explore?.showHint();
+        }
         landed = st.name;
       }
     }

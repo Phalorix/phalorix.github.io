@@ -1,9 +1,11 @@
 // Gentle scroll snapping between camera stops.
-// Scrolling itself is never touched. The snapper only acts after you let go, and only to finish
-// the move you started: a short push away from a section carries on to the next one, a tiny nudge
-// settles back. The glide starts at the speed the page is already moving and eases into the stop,
-// so it reads as the page's own momentum rather than a jump. Any new wheel, touch or key input
-// takes over instantly.
+// Wheel and trackpad: the snap is *projected while you scroll*. Every wheel event moves an
+// invisible "raw" position, and the page's own smooth scroll is aimed straight at the stop that
+// raw position leads to: a short push away from a section carries on to the next one, a nudge
+// settles back, a long scroll finishes in its direction. There is no waiting for the wheel to go
+// quiet and no stop-then-go: the motion flows into the stop in one movement.
+// Touch: native scrolling (and its momentum) is kept; as the fling slows down, a glide takes
+// over at the same speed and eases into the stop.
 // Free areas (no snapping): inside tall blocks (forms, long lists) and everything below the last
 // stop (the footer).
 // Keyboard: ↓ / PageDown / Space = next stop, ↑ / PageUp = previous, Home / End.
@@ -22,6 +24,8 @@ export class Snapper {
     this.lastScroll = 0;
     this.gliding = false;
     this.vel = 0;            // px/s, measured from the actual scroll position
+    this.wheel = null;       // { start, raw, t } of the current wheel gesture
+    this.released = 0;
     this.lastY = lenis.scroll;
     this.lastT = performance.now();
 
@@ -30,22 +34,50 @@ export class Snapper {
     const begin = (mode) => {
       if (!this.gesture || this.gesture.mode !== mode) this.gesture = { start: this.anchorNear(lenis.scroll), mode };
     };
-    // capture phase: runs before Lenis has applied this wheel event
-    window.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaY) < 1 || e.ctrlKey) return;
-      this.gliding = false;   // Lenis continues from the current position by itself
-      begin('wheel');
-      this.lastInput = now();
-    }, { passive: true, capture: true });
     window.addEventListener('touchstart', () => {
       if (this.gliding) { this.gliding = false; lenis.scrollTo(window.scrollY, { immediate: true, force: true }); }
       this.touching = true;
       begin('touch');
       this.lastInput = now();
     }, { passive: true });
-    window.addEventListener('touchend', () => { this.touching = false; this.lastInput = now(); }, { passive: true });
+    window.addEventListener('touchend', () => { this.touching = false; this.lastInput = now(); this.released = now(); }, { passive: true });
     lenis.on('scroll', () => { this.lastScroll = now(); });
     window.addEventListener('keydown', (e) => this.onKey(e));
+  }
+
+  /**
+   * Lenis hands every wheel event here first (its `virtualScroll` option). Return false = handled.
+   * The deltas arrive already normalised by Lenis (lines/pages → px, wheel multiplier).
+   */
+  onVirtual({ deltaY, event }) {
+    if (!event.type.includes('wheel') || !this.enabled || event.ctrlKey || this.blocked()) return true;
+    if (event.target instanceof Element && event.target.closest('[data-lenis-prevent], .modal, .menu')) return true;
+    if (!this.rig.stops.length || Math.abs(deltaY) < 0.5) return true;
+    const t = performance.now();
+    const limit = this.lenis.limit;
+    // a pause of 220 ms starts a new gesture, anchored where the page actually is
+    if (!this.wheel || t - this.wheel.t > 220) this.wheel = { start: this.anchorNear(this.lenis.scroll), raw: this.lenis.scroll };
+    const w = this.wheel;
+    w.t = t;
+    w.raw = clamp(w.raw + deltaY, 0, limit);
+    if (event.cancelable) event.preventDefault();
+    this.gliding = false;
+    const target = this.project(w.raw, w.start);
+    // free areas (tall blocks, the footer) scroll normally; elsewhere aim straight at the stop
+    this.lenis.scrollTo(target === null ? w.raw : target, { lerp: target === null ? 0.12 : 0.1 });
+    return false;
+  }
+
+  /** The stop a wheel gesture that began at `start` and has reached `y` is heading for (null = free). */
+  project(y, start) {
+    const stops = this.rig.stops;
+    if (y > stops[stops.length - 1].a + 2 || this.inZone(y)) return null;
+    const pts = this.points();
+    let P = null, N = null;
+    for (const p of pts) { if (p <= y) P = p; else if (N === null) N = p; }
+    if (P === null) return N;
+    if (N === null || Math.abs(y - P) < 2) return P;
+    return this.pick(y, start) ?? P;
   }
 
   /** A gesture that starts within a few px of a stop counts as starting on it. */
@@ -73,10 +105,10 @@ export class Snapper {
     if (!this.enabled || !this.gesture || this.gliding) return;
     if (this.blocked()) { this.gesture = null; return; }
     const g = this.gesture;
-    if (g.mode === 'wheel' && t - this.lastInput > 140) {
-      this.gesture = null;
-      this.settle(this.lenis.targetScroll ?? y, g.start);
-    } else if (g.mode === 'touch' && !this.touching && t - this.lastInput > 110 && t - this.lastScroll > 110) {
+    // touch: take over as soon as the fling has slowed (no waiting for it to stop dead)
+    const settling = Math.abs(this.vel) < 650 && t - this.released > 40;
+    const stopped = t - this.lastScroll > 90;
+    if (g.mode === 'touch' && !this.touching && (settling || stopped)) {
       this.gesture = null;
       this.settle(y, g.start);
     }

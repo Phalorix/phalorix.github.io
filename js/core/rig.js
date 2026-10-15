@@ -23,6 +23,8 @@ export class Rig {
     this.scrim = [0, 0, 0];
     this.tScrim = [0, 0, 0];
     this.pointer = new THREE.Vector2();
+    this.orbit = 0;          // radians, set by a sideways swipe on touch screens
+    this.orbitNow = 0;
     this.pSmooth = new THREE.Vector2();
     this.intro = 0;
     this.roll = 0;
@@ -87,7 +89,7 @@ export class Rig {
       let a = i === 0 ? 0 : top + (Math.min(h, vh * 1.35) - vh) / 2;
       a = clamp(Math.max(a, prev + 1), 0, max);
       prev = a;
-      if (h > vh * 1.08) this.zones.push([Math.min(top, max), Math.min(top + h - vh, max)]);
+      if (h > vh * 1.08) this.zones.push([Math.min(top, max), Math.min(top + h - vh, max), el.dataset.cam]);
       const raw = this.keys[el.dataset.cam];
       if (!raw) console.warn('missing camera key', el.dataset.cam);
       const { shift, scrim } = this.framing(el, a);
@@ -139,6 +141,14 @@ export class Rig {
     const e = 1 - Math.pow(1 - this.intro, 3);
     cam.position.lerpVectors(ip.pos, this.pos, e);
     const look = this._v.lerpVectors(ip.look, this.look, e);
+    // touch orbit around the subject (a sideways swipe), eased so it never jumps
+    this.orbitNow += (this.orbit - this.orbitNow) * (1 - Math.exp(-dt * 6));
+    if (Math.abs(this.orbitNow) > 1e-4) {
+      const ox = cam.position.x - look.x, oz = cam.position.z - look.z;
+      const c = Math.cos(this.orbitNow), s = Math.sin(this.orbitNow);
+      cam.position.x = look.x + ox * c - oz * s;
+      cam.position.z = look.z + ox * s + oz * c;
+    }
 
     // gentle pointer parallax in camera space
     this._f.subVectors(look, cam.position).normalize();

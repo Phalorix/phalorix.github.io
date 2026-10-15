@@ -9,7 +9,7 @@ const v = (x, y, z) => new THREE.Vector3(x, y, z);
 
 export const L = {
   hero: { z: 0, range: [-20, 20] },
-  origin: { pos: v(0, 13.2, -52), scale: 2, range: [-80, -24] },
+  origin: { pos: v(0, 14.5, -58), scale: 1, range: [-80, -24] },
   creel: { c: v(0, 0, -112), R: 16, angles: [-54, -36, -18, 0, 18, 36, 54].map(deg), range: [-156, -78] },
   eye: v(0, 15.5, -122),
   neural: { z0: -158, gap: 16, layers: 5, cy: 13, range: [-240, -126] },
@@ -42,8 +42,9 @@ export function cameraKeys() {
     intro: { pos: v(0, 30, 78), look: v(0, 15, 0) },
     hero: { pos: v(0, 4.4, 33), look: v(0, 12.6, 0), p: { pos: v(0, 3.2, 40), look: v(0, 13.6, 0) } },
     curtain: { pos: v(-1.5, 11.8, 13.5), look: v(1.2, 14.6, -6), pk: 1.25 },
-    origin: { pos: v(15, 31, -27), look: v(0, 14, -62), p: { pos: v(12, 38, -12), look: v(0, 15, -62) } },
-    origin2: { pos: v(-8, 27, -38), look: v(0, 16, -54), p: { pos: v(-10, 32, -26), look: v(0, 17, -54) } },
+    // the first program: the whole card → threads → cloth column, then closer on threads + cloth
+    origin: { pos: v(5, 16.5, -27), look: v(0, 14.6, -58), p: { pos: v(3, 16, -14), look: v(0, 15.5, -58) } },
+    origin2: { pos: v(-7.5, 10.5, -37), look: v(0, 11.2, -58), p: { pos: v(-5, 12.5, -22), look: v(0, 13, -58) } },
     'svc-intro': { pos: v(0, 7.2, -86), look: v(0, 7.6, -118), pk: 1.15 },
     'svc-out': { pos: v(0, 8.5, -105), look: v(0, 15, -127), pk: 1.2 },
     'ai-intro': { pos: v(0, 13, -134), look: v(0, 13, -158), pk: 1.1 },

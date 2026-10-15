@@ -615,6 +615,69 @@ body.is-entered .hero > * { opacity: 1; transform: none; }
 .is-in > .h1, .is-in > .h2, .atlas.is-in .atlas__head .h2 { clip-path: inset(-0.4em -0.3em -0.55em -0.3em) !important; }
 .no-webgl .panel > .h1, .no-webgl .panel > .h2 { clip-path: none; }
 
+/* ─── the section you are on comes forward, the others step back (main.js sets .is-current) ─── */
+html.choreo .beat:not(.beat--hero) [data-frame] { transition: opacity 0.6s var(--ease); }
+html.choreo .beat:not(.beat--hero):not(.is-current) [data-frame] { opacity: 0.35; }
+html.choreo .beat:not(.beat--hero) [data-frame] > * { transition: transform 0.9s var(--ease), opacity 0.7s var(--ease); }
+html.choreo .beat:not(.beat--hero) [data-frame] > .h1,
+html.choreo .beat:not(.beat--hero) [data-frame] > .h2 { transition: transform 0.9s var(--ease), opacity 0.7s var(--ease), clip-path 1.4s var(--ease) 0.1s; }
+html.choreo .beat:not(.beat--hero):not(.is-current) [data-frame] > * { transform: translateY(14px); opacity: 0.45; }
+html.choreo .beat.is-current [data-frame] > :nth-child(2) { transition-delay: 0.05s; }
+html.choreo .beat.is-current [data-frame] > :nth-child(3) { transition-delay: 0.1s; }
+html.choreo .beat.is-current [data-frame] > :nth-child(4) { transition-delay: 0.15s; }
+html.choreo .beat.is-current [data-frame] > :nth-child(5) { transition-delay: 0.2s; }
+html.choreo .beat.is-current [data-frame] > :nth-child(n + 6) { transition-delay: 0.25s; }
+
+/* ─── phones: compact cards, chapter cards, the swipe hint ─── */
+.panel.is-clamped { max-height: var(--clamp, 40vh); overflow: hidden; padding-bottom: 3.6rem; }
+.panel.is-clamped.is-open { max-height: none; }
+.panel.is-clamped::after {
+  content: ''; position: absolute; inset-inline: 1px; bottom: 1px; height: 6rem; pointer-events: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: linear-gradient(to bottom, rgba(4, 10, 18, 0), rgba(4, 10, 18, 0.97) 58%);
+}
+.panel.is-clamped.is-open::after { display: none; }
+.panel__more {
+  position: absolute; z-index: 2; bottom: 0.85rem; inset-inline-start: 50%; transform: translateX(-50%);
+  min-height: 38px; padding: 0.45em 1.2em; border-radius: 99px; border: 1px solid rgba(142, 216, 190, 0.4);
+  background: rgba(2, 8, 16, 0.9); color: var(--mint); cursor: pointer;
+  font-family: var(--label-font); font-size: 11px; letter-spacing: var(--track); text-transform: var(--case);
+}
+[dir='rtl'] .panel__more { transform: translateX(50%); }
+:lang(ar) .panel__more { font-size: 13.5px; }
+.panel.is-open .panel__more { position: static; transform: none; margin: 1.1rem auto 0; display: block; }
+
+.chapter-card {
+  position: fixed; z-index: 4; inset-inline: 0; top: calc(var(--nav-h) + 9vh); pointer-events: none; opacity: 0;
+  display: grid; justify-items: center; gap: 0.35rem; text-align: center;
+}
+/* a big outlined chapter number, the name small beneath: it marks the move, the section's own title does the rest */
+.chapter-card b { font-family: var(--serif); font-weight: 400; font-size: clamp(6rem, 34vw, 9rem); line-height: 0.9; color: transparent; -webkit-text-stroke: 1.2px rgba(142, 216, 190, 0.85); text-shadow: 0 0 40px rgba(142, 216, 190, 0.25); }
+.chapter-card span { font-family: var(--label-font); font-size: 11px; letter-spacing: 0.34em; letter-spacing: var(--track); text-transform: var(--case); color: var(--ivory); padding-inline: 1rem; }
+:lang(ar) .chapter-card span { font-size: 14px; }
+.chapter-card.is-on { animation: chapter-card 1.5s var(--ease) both; }
+@keyframes chapter-card {
+  0% { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(6px); }
+  22% { opacity: 1; transform: none; filter: blur(0); }
+  72% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-12px); }
+}
+
+.touch-hint {
+  position: fixed; z-index: 4; left: 50%; top: calc(var(--nav-h) + 12px); transform: translate(-50%, -8px);
+  display: flex; align-items: center; gap: 0.7em; padding: 0.55em 1.05em; border-radius: 99px; white-space: nowrap;
+  background: rgba(2, 8, 16, 0.82); border: 1px solid rgba(142, 216, 190, 0.35); color: var(--ivory); pointer-events: none;
+  font-family: var(--label-font); font-size: 10.5px; letter-spacing: var(--track); text-transform: var(--case);
+  opacity: 0; transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+}
+:lang(ar) .touch-hint { font-size: 13px; }
+.touch-hint.is-on { opacity: 1; transform: translate(-50%, 0); }
+.touch-hint i { position: relative; width: 26px; height: 2px; border-radius: 1px; background: var(--mint); animation: swipe-hint 1.3s ease-in-out infinite; }
+.touch-hint i::before, .touch-hint i::after { content: ''; position: absolute; top: -3px; width: 6px; height: 6px; border-top: 2px solid var(--mint); }
+.touch-hint i::before { left: -1px; border-left: 2px solid var(--mint); transform: rotate(-45deg); }
+.touch-hint i::after { right: -1px; border-right: 2px solid var(--mint); transform: rotate(45deg); }
+@keyframes swipe-hint { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+
 /* ─── custom cursor ─── */
 /* a real (hardware) cursor in the needle's-eye style: it never lags, whatever the page is doing;
    the canvas only draws the thread trailing behind it */
@@ -703,6 +766,8 @@ body.is-entered .hero > * { opacity: 1; transform: none; }
   :lang(ar) .label3d { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  html.choreo .beat [data-frame] > * { transform: none !important; }
+  .chapter-card.is-on, .touch-hint i { animation: none; }
   .marquee__row, .scroll-cue i::after, .play-pill__icon i, .dot, .sources li.is-live i::before { animation: none; }
   .hero__title .w, .reveal-up, .panel > .h1, .panel > .h2 { transition-duration: 0.01s !important; }
 }

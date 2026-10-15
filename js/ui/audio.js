@@ -63,8 +63,10 @@ export class Sound {
     });
   }
 
-  /** On, or waiting for the first gesture to switch on. */
-  get on() { return this.enabled || (this.wanted && !this.ctx); }
+  /** Actually playing (the toggle shows exactly this, never a hoped-for state). */
+  get on() { return this.enabled; }
+  /** Will switch on by itself with the first click or tap (browsers need one). */
+  get armed() { return this.wanted && !this.enabled; }
 
   onChange(fn) { this.listeners.add(fn); }
   emit() { for (const fn of this.listeners) fn(this.on); }
@@ -255,7 +257,7 @@ export class Sound {
     this.emit();
   }
 
-  toggle() { return this.on ? this.disable() : this.enable(); }
+  toggle() { return this.enabled ? this.disable() : this.enable(); }
 
   // ── music ────────────────────────────────────────────────────────────
   /** Crossfade the pad to the chord of a chapter (the music box follows on its next note). */

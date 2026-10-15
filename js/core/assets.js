@@ -5,8 +5,6 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 // All models were made in Blender (see /blender/aurora_assets.blend) and exported meshopt-compressed.
 export const MODELS = {
   shuttle: '/assets/models/shuttle.glb',
-  jacquard: '/assets/models/jacquard.glb',
-  cards: '/assets/models/cards.glb',
   spool: '/assets/models/spool.glb',
   ring: '/assets/models/snapring.glb',
   rod: '/assets/models/rod.glb',

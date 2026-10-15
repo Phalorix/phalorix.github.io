@@ -14,6 +14,10 @@ const STRINGS = {
     snap: { raw: 'Your data, as it arrives', reed: 'Snapplyze reads it', insight: 'What changed · why · what next' },
     loom: ['Back beam', 'Pattern frames', 'Shuttle & reed', 'Cloth beam'],
     reading: 'Card on top reads',
+    originParts: ['The program: a punched card', 'Each hole lifts a thread', 'Row by row, a picture'],
+    more: ['Read more', 'Show less'],
+    swipeHint: 'Swipe sideways to look around',
+    originDesigns: { flower: 'a flower', logo: 'our logo', app: 'a mobile app', chat: 'an AI chat' },
     sound: {
       on: 'Sound is on. Run your cursor across the light', touch: 'Sound is on. Tap the light to play it',
       armed: 'Click anywhere for sound, then run your cursor across the light', armedTouch: 'Tap anywhere for sound, then tap the light',
@@ -36,6 +40,10 @@ const STRINGS = {
     snap: { raw: 'بياناتك كما تصل', reed: 'يقرؤها Snapplyze', insight: 'ما الذي تغيّر · لماذا · ماذا بعد' },
     loom: ['الأسطوانة الخلفية', 'إطارات النقشة', 'المكّوك والمشط', 'أسطوانة القماش'],
     reading: 'البطاقة في الأعلى تقول',
+    originParts: ['البرنامج: بطاقة مثقوبة', 'كل ثقب يرفع خيطًا', 'صفًا بعد صف تظهر الصورة'],
+    more: ['اقرأ المزيد', 'عرض أقل'],
+    swipeHint: 'اسحب يمينًا أو يسارًا لتتجوّل حول المشهد',
+    originDesigns: { flower: 'زهرة', logo: 'شعارنا', app: 'تطبيق موبايل', chat: 'محادثة ذكاء اصطناعي' },
     sound: {
       on: 'الصوت يعمل. حرّك المؤشر فوق الضوء', touch: 'الصوت يعمل. المس الضوء لتعزف عليه',
       armed: 'اضغط في أي مكان لتشغيل الصوت، ثم حرّك المؤشر فوق الضوء', armedTouch: 'المس الشاشة لتشغيل الصوت، ثم المس الضوء',
